@@ -1,5 +1,7 @@
 # YouTube TV Sync for Firefox: Extension Install
 
+This is a quick personal project, not a finished extension.
+
 1. Start the local helper:
 
 ```bash
@@ -19,3 +21,4 @@ Notes:
 - Temporary add-ons are removed when Firefox fully exits, so load it again after restarting Firefox.
 - The helper must stay running on `127.0.0.1:49314`.
 - Firefox 140 or newer is recommended for the current manifest/privacy declaration.
+- Feedback and input are welcome.

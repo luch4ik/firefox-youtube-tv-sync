@@ -2,6 +2,8 @@
 
 Experimental real-time YouTube TV sync/control for Firefox.
 
+This is a quick personal project, not a finished product.
+
 It adds a floating cast button on YouTube pages, connects to a TV through a local helper, and then keeps the browser player and TV session in sync closely enough that the normal YouTube controls can act like the remote.
 
 It is built around two parts:
@@ -29,6 +31,7 @@ Preferred Firefox install:
 - DRM services like Netflix, Disney+, Prime Video
 - A uniform feature set across every TV brand / protocol
 - Guaranteed volume / captions / quality control on all targets
+- The level of polish you would expect from a finished consumer extension
 
 ## Install
 
@@ -100,6 +103,12 @@ The extension remembers the last selected device and can auto-follow new YouTube
 
 ## Release Notes
 
-- Treat this as an experimental project, not a finished consumer extension.
+- Treat this as a quick personal project, not a finished consumer extension.
 - If you post it publicly, describe it as YouTube-only.
 - This repository uses the MIT license.
+
+## Feedback
+
+Feedback, bug reports, and input are welcome.
+
+If you try it on a different TV or hit a weird edge case, I would be happy to hear what worked, what broke, and what feels rough.

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "YouTube TV Sync for Firefox",
-  "version": "0.3.1",
-  "description": "Experimental real-time YouTube TV sync/control with a floating in-player cast button and local helper.",
+  "version": "0.3.2",
+  "description": "Experimental personal YouTube TV sync/control project with a floating in-player cast button and local helper.",
   "permissions": [
     "storage"
   ],
