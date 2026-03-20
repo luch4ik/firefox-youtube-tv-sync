@@ -1,0 +1,42 @@
+{
+  "manifest_version": 3,
+  "name": "Firefox YouTube TV Sync",
+  "version": "0.3.0",
+  "description": "Experimental real-time YouTube TV sync/control for Firefox with a floating in-player cast button and local helper.",
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "http://localhost/*"
+  ],
+  "icons": {
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png"
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://www.youtube.com/*",
+        "*://youtube.com/*",
+        "*://m.youtube.com/*",
+        "*://youtu.be/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "firefox-cast-button@local.nvx",
+      "strict_min_version": "109.0"
+    }
+  }
+}
