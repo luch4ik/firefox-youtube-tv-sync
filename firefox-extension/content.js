@@ -225,12 +225,17 @@
   button.id = "ff-cast-button";
   button.type = "button";
   button.title = "Cast video";
-  button.innerHTML = `
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="currentColor" d="M1.5 18.5a4 4 0 0 1 4 4h-4zm0-7a11 11 0 0 1 11 11h-3a8 8 0 0 0-8-8zm0-7a18 18 0 0 1 18 18h-3a15 15 0 0 0-15-15zm17 0h4v4h-4zm-8 0h6v6h-2v-4h-4z"/>
-    </svg>
-    <span class="ff-cast-spinner" aria-hidden="true"></span>
-  `;
+  const buttonIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  buttonIcon.setAttribute("viewBox", "0 0 24 24");
+  buttonIcon.setAttribute("aria-hidden", "true");
+  const buttonIconPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  buttonIconPath.setAttribute("fill", "currentColor");
+  buttonIconPath.setAttribute("d", "M1.5 18.5a4 4 0 0 1 4 4h-4zm0-7a11 11 0 0 1 11 11h-3a8 8 0 0 0-8-8zm0-7a18 18 0 0 1 18 18h-3a15 15 0 0 0-15-15zm17 0h4v4h-4zm-8 0h6v6h-2v-4h-4z");
+  buttonIcon.appendChild(buttonIconPath);
+  const buttonSpinner = document.createElement("span");
+  buttonSpinner.className = "ff-cast-spinner";
+  buttonSpinner.setAttribute("aria-hidden", "true");
+  button.append(buttonIcon, buttonSpinner);
   document.documentElement.appendChild(button);
 
   const picker = document.createElement("div");
@@ -602,9 +607,93 @@
     return Math.max(0, currentTime);
   }
 
-  function getRemoteSummaryHtml() {
+  function appendChildValue(parent, value) {
+    if (value === null || value === undefined || value === false) {
+      return;
+    }
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        appendChildValue(parent, item);
+      }
+      return;
+    }
+    if (value instanceof Node) {
+      parent.appendChild(value);
+      return;
+    }
+    parent.appendChild(document.createTextNode(String(value)));
+  }
+
+  function createNode(tagName, options = {}, children = []) {
+    const element = document.createElement(tagName);
+    if (options.className) {
+      element.className = options.className;
+    }
+    if (options.type) {
+      element.setAttribute("type", options.type);
+    }
+    if (options.text !== undefined) {
+      element.textContent = String(options.text);
+    }
+    if (options.dataset) {
+      Object.entries(options.dataset).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          element.dataset[key] = String(value);
+        }
+      });
+    }
+    if (options.attributes) {
+      Object.entries(options.attributes).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          element.setAttribute(key, String(value));
+        }
+      });
+    }
+    appendChildValue(element, children);
+    return element;
+  }
+
+  function createPickerTitle() {
+    return createNode("h2", { text: "Cast This Video" });
+  }
+
+  function createStatusCard(title, body, detail, kind = "") {
+    return createNode("div", {
+      className: "ff-cast-status",
+      dataset: kind ? { kind } : undefined,
+    }, [
+      createNode("strong", { text: title }),
+      body || "",
+      detail ? createNode("small", { text: detail }) : null,
+    ]);
+  }
+
+  function createActionButton(label, dataset) {
+    return createNode("button", {
+      className: "ff-cast-action",
+      type: "button",
+      dataset,
+      text: label,
+    });
+  }
+
+  function createDeviceButton(device, isDefault = false, subtitle = "") {
+    return createNode("button", {
+      className: `ff-cast-device${isDefault ? " is-default" : ""}`,
+      type: "button",
+      dataset: {
+        deviceId: device.id,
+        deviceName: device.name,
+      },
+    }, [
+      device.name,
+      subtitle ? createNode("small", { text: subtitle }) : null,
+    ]);
+  }
+
+  function getRemoteSummaryNode() {
     if (!state.remoteStatus?.connected) {
-      return "";
+      return null;
     }
 
     const playbackState = String(state.remoteStatus.playback_state || "connected");
@@ -615,31 +704,23 @@
       ? `${formatTime(currentTime)} / ${formatTime(duration)}`
       : "Waiting for playback time";
 
-    return `
-      <div class="ff-cast-status" data-kind="connected">
-        <strong>${escapeHtml(state.remoteStatus.device_name || "Connected TV")}</strong>
-        ${escapeHtml(label)}<small>${escapeHtml(timeLabel)}</small>
-      </div>
-    `;
+    return createStatusCard(
+      state.remoteStatus.device_name || "Connected TV",
+      label,
+      timeLabel,
+      "connected"
+    );
   }
 
-  function getAutoFollowActionHtml() {
-    return `
-      <button class="ff-cast-action" type="button" data-toggle-auto-follow="1">
-        ${escapeHtml(getAutoFollowLabel())}
-      </button>
-    `;
+  function getAutoFollowActionNode() {
+    return createActionButton(getAutoFollowLabel(), { toggleAutoFollow: "1" });
   }
 
-  function getDisconnectActionHtml() {
+  function getDisconnectActionNode() {
     if (!state.remoteStatus?.connected) {
-      return "";
+      return null;
     }
-    return `
-      <button class="ff-cast-action" type="button" data-disconnect-remote="1">
-        Disconnect TV
-      </button>
-    `;
+    return createActionButton("Disconnect TV", { disconnectRemote: "1" });
   }
 
   function syncVisibleStateFromRemoteStatus() {
@@ -795,34 +876,28 @@
     }
 
     setButtonState("busy", "Disconnecting TV...");
-    renderPicker(`
-      <h2>Cast This Video</h2>
-      <div class="ff-cast-status"><strong>Disconnecting</strong>Stopping playback control on the TV…</div>
-    `);
+    renderPicker([
+      createPickerTitle(),
+      createStatusCard("Disconnecting", "Stopping playback control on the TV…"),
+    ]);
 
     try {
       await sendRemoteCommand("stop");
       state.autoFollowVideoId = "";
-      renderPicker(`
-        <h2>Cast This Video</h2>
-        <div class="ff-cast-status">
-          <strong>Disconnected</strong>
-          The TV session has been closed.
-        </div>
-      `);
+      renderPicker([
+        createPickerTitle(),
+        createStatusCard("Disconnected", "The TV session has been closed."),
+      ]);
       await delay(700);
       hidePicker();
       setButtonState("idle", "");
     } catch (error) {
       setButtonState("error", "Disconnect failed");
-      renderPicker(`
-        <h2>Cast This Video</h2>
-        <div class="ff-cast-status">
-          <strong>Disconnect failed</strong>
-          ${escapeHtml(error.message || "Could not disconnect the TV session.")}
-        </div>
-        ${getDisconnectActionHtml()}
-      `);
+      renderPicker([
+        createPickerTitle(),
+        createStatusCard("Disconnect failed", error.message || "Could not disconnect the TV session."),
+        getDisconnectActionNode(),
+      ]);
     }
   }
 
@@ -1023,20 +1098,12 @@
     });
   }
 
-  function renderPicker(contentHtml) {
-    picker.innerHTML = contentHtml;
+  function renderPicker(children) {
+    picker.replaceChildren();
+    appendChildValue(picker, children);
     picker.style.display = "block";
     state.pickerOpen = true;
     positionPicker();
-  }
-
-  function escapeHtml(value) {
-    return String(value)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
   }
 
   async function renderDevices(devices) {
@@ -1047,21 +1114,18 @@
       const subtitle = [device.model_name, device.manufacturer, device.protocol?.toUpperCase()]
         .filter(Boolean)
         .join(" • ");
-      return `
-        <button class="ff-cast-device ${isDefault ? "is-default" : ""}" type="button" data-device-id="${escapeHtml(device.id)}" data-device-name="${escapeHtml(device.name)}">
-          ${escapeHtml(device.name)}
-          <small>${escapeHtml(subtitle || "Video target")}</small>
-        </button>
-      `;
-    }).join("");
+      return createDeviceButton(device, isDefault, subtitle || "Video target");
+    });
 
-    renderPicker(`
-      <h2>Cast This Video</h2>
-      ${rows || '<div class="ff-cast-status">No cast devices found.<small>Make sure the TV is on the same Wi-Fi and the local helper is running.</small></div>'}
-      ${getDisconnectActionHtml()}
-      ${getAutoFollowActionHtml()}
-      <button class="ff-cast-action" type="button" data-refresh="1">Refresh devices</button>
-    `);
+    renderPicker([
+      createPickerTitle(),
+      rows.length
+        ? rows
+        : createStatusCard("No cast devices found.", "", "Make sure the TV is on the same Wi-Fi and the local helper is running."),
+      getDisconnectActionNode(),
+      getAutoFollowActionNode(),
+      createActionButton("Refresh devices", { refresh: "1" }),
+    ]);
   }
 
   async function fetchAndRenderDevices() {
@@ -1082,10 +1146,10 @@
     }
 
     setButtonState("busy", "Looking for TVs...");
-    renderPicker(`
-      <h2>Cast This Video</h2>
-      <div class="ff-cast-status">Looking for TVs…<small>The helper scans Cast devices on your local network.</small></div>
-    `);
+    renderPicker([
+      createPickerTitle(),
+      createStatusCard("Looking for TVs…", "", "The helper scans Cast devices on your local network."),
+    ]);
 
     try {
       const response = await helperRequest("GET", "/devices", null);
@@ -1093,13 +1157,14 @@
       syncVisibleStateFromRemoteStatus();
     } catch (error) {
       setButtonState("error", "TV scan failed");
-      renderPicker(`
-        <h2>Cast This Video</h2>
-        <div class="ff-cast-status">
-          ${escapeHtml(error.message || "Failed to load devices.")}
-          <small>Start <code>cast_helper.py</code> and keep the TV on the same network.</small>
-        </div>
-      `);
+      renderPicker([
+        createPickerTitle(),
+        createStatusCard(
+          "Device scan failed",
+          error.message || "Failed to load devices.",
+          "Start cast_helper.py and keep the TV on the same network."
+        ),
+      ]);
     }
   }
 
@@ -1119,17 +1184,14 @@
 
     syncVisibleStateFromRemoteStatus();
 
-    renderPicker(`
-      <h2>Cast This Video</h2>
-      ${getRemoteSummaryHtml()}
-      <button class="ff-cast-device is-default" type="button" data-device-id="${escapeHtml(storedDevice.id)}" data-device-name="${escapeHtml(storedDevice.name)}">
-        ${escapeHtml(storedDevice.name)}
-        <small>Last used TV</small>
-      </button>
-      ${getDisconnectActionHtml()}
-      ${getAutoFollowActionHtml()}
-      <button class="ff-cast-action" type="button" data-open-scan="1">Choose another TV</button>
-    `);
+    renderPicker([
+      createPickerTitle(),
+      getRemoteSummaryNode(),
+      createDeviceButton(storedDevice, true, "Last used TV"),
+      getDisconnectActionNode(),
+      getAutoFollowActionNode(),
+      createActionButton("Choose another TV", { openScan: "1" }),
+    ]);
   }
 
   async function sendToDevice(deviceId, deviceName) {
@@ -1144,47 +1206,52 @@
     const expectedVideoId = getPageVideoId();
 
     setButtonState("busy", `Starting ${deviceName}...`);
-    renderPicker(`
-      <h2>Cast This Video</h2>
-      <div class="ff-cast-status"><strong>Starting TV</strong>Sending to ${escapeHtml(deviceName)}…<small>Opening the receiver on the TV.</small></div>
-    `);
+    renderPicker([
+      createPickerTitle(),
+      createStatusCard("Starting TV", `Sending to ${deviceName}…`, "Opening the receiver on the TV."),
+    ]);
 
     try {
       const response = await helperRequest("POST", "/cast", payload);
       await rememberDefaultDevice(deviceId, deviceName);
       if (response.mode === "youtube") {
         setButtonState("busy", `Waiting for ${deviceName}...`);
-        renderPicker(`
-          <h2>Cast This Video</h2>
-          <div class="ff-cast-status"><strong>Waiting for playback</strong>${escapeHtml(deviceName)} is opening YouTube…<small>Finishing the TV handshake before we mark it connected.</small></div>
-        `);
+        renderPicker([
+          createPickerTitle(),
+          createStatusCard(
+            "Waiting for playback",
+            `${deviceName} is opening YouTube…`,
+            "Finishing the TV handshake before we mark it connected."
+          ),
+        ]);
         await waitForYoutubeRemoteReady(expectedVideoId);
       } else {
         setButtonState("connected", `${deviceName} connected`);
       }
-      renderPicker(`
-        <h2>Cast This Video</h2>
-        <div class="ff-cast-status" data-kind="connected">
-          <strong>Connected</strong>
-          Playing on ${escapeHtml(deviceName)}
-          <small>${escapeHtml(response.message || "Cast started successfully.")}</small>
-        </div>
-      `);
+      renderPicker([
+        createPickerTitle(),
+        createStatusCard(
+          "Connected",
+          `Playing on ${deviceName}`,
+          response.message || "Cast started successfully.",
+          "connected"
+        ),
+      ]);
       await delay(900);
       showToast(response.message || `Casting on ${deviceName}`);
       hidePicker();
     } catch (error) {
       setButtonState("error", `Could not connect to ${deviceName}`);
-      renderPicker(`
-        <h2>Cast This Video</h2>
-        <div class="ff-cast-status">
-          <strong>Connection failed</strong>
-          ${escapeHtml(error.message || `Could not cast to ${deviceName}`)}
-          <small>Check that the helper is running and the TV is reachable, then try again.</small>
-        </div>
-        ${getAutoFollowActionHtml()}
-        <button class="ff-cast-action" type="button" data-open-scan="1">Choose another TV</button>
-      `);
+      renderPicker([
+        createPickerTitle(),
+        createStatusCard(
+          "Connection failed",
+          error.message || `Could not cast to ${deviceName}`,
+          "Check that the helper is running and the TV is reachable, then try again."
+        ),
+        getAutoFollowActionNode(),
+        createActionButton("Choose another TV", { openScan: "1" }),
+      ]);
       showToast(error.message || `Could not cast to ${deviceName}`, "error");
     }
   }

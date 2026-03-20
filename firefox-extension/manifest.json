@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Firefox YouTube TV Sync",
-  "version": "0.3.0",
-  "description": "Experimental real-time YouTube TV sync/control for Firefox with a floating in-player cast button and local helper.",
+  "name": "YouTube TV Sync for Firefox",
+  "version": "0.3.1",
+  "description": "Experimental real-time YouTube TV sync/control with a floating in-player cast button and local helper.",
   "permissions": [
     "storage"
   ],
@@ -36,7 +36,16 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "firefox-cast-button@local.nvx",
-      "strict_min_version": "109.0"
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": [
+          "websiteActivity",
+          "websiteContent"
+        ]
+      }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   }
 }

@@ -1,4 +1,4 @@
-# Firefox Extension Install
+# YouTube TV Sync for Firefox: Extension Install
 
 1. Start the local helper:
 
@@ -12,9 +12,10 @@ cd /home/nvx/projects/firefox-cast-button
 4. Click `Load Temporary Add-on...`.
 5. Choose [`manifest.json`](/home/nvx/projects/firefox-cast-button/firefox-extension/manifest.json).
 
-The extension will inject the floating cast button into pages with HTML5 video.
+The extension injects the floating cast button into YouTube pages only.
 
 Notes:
 
 - Temporary add-ons are removed when Firefox fully exits, so load it again after restarting Firefox.
 - The helper must stay running on `127.0.0.1:49314`.
+- Firefox 140 or newer is recommended for the current manifest/privacy declaration.

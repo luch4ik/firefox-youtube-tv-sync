@@ -1,4 +1,4 @@
-# Firefox YouTube TV Sync
+# YouTube TV Sync for Firefox
 
 Experimental real-time YouTube TV sync/control for Firefox.
 
@@ -12,6 +12,7 @@ It is built around two parts:
 Preferred Firefox install:
 
 - `firefox-extension/manifest.json` as a temporary Firefox add-on loaded from `about:debugging`
+- Firefox 140 or newer is recommended for the current manifest/privacy declaration
 
 ## Current Scope
 
@@ -63,7 +64,11 @@ By default it refuses to bind to non-loopback interfaces. If you intentionally w
 3. Click `Load Temporary Add-on...`.
 4. Pick `firefox-extension/manifest.json`.
 
-### 4. Optional: legacy userscript path
+### 4. Privacy
+
+The extension sends the minimum data needed to a localhost helper on `127.0.0.1:49314` so it can discover TVs and control playback. See `PRIVACY.md` for the exact data flow.
+
+### 5. Optional: legacy userscript path
 
 `firefox-video-cast.user.js` still exists for manual userscript installs, but the Firefox extension is the preferred path.
 
@@ -91,6 +96,7 @@ The extension remembers the last selected device and can auto-follow new YouTube
 - If no devices appear, make sure the TV and computer are on the same network.
 - Some capabilities are TV-specific. Do not present this as “all TVs get all controls.”
 - At the time of writing, play/pause/seek/disconnect/auto-follow are the most reliable path. Volume is not promised across all TVs.
+- For AMO submission, the extension declares `websiteActivity` and `websiteContent` because it reads the current YouTube page/player state and sends that to the local helper for playback control.
 
 ## Release Notes
 
