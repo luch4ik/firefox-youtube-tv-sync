@@ -263,11 +263,21 @@
   showToast.timerId = null;
 
   function helperRequest(method, path, body) {
-    return browser.runtime.sendMessage({
-      type: "cast-helper-request",
-      method,
-      path,
-      body,
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        type: "cast-helper-request",
+        method,
+        path,
+        body,
+      }, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (response && response.error) {
+          reject(new Error(response.error));
+        } else {
+          resolve(response);
+        }
+      });
     });
   }
 
@@ -1086,7 +1096,7 @@
   }
 
   async function getStoredDevice() {
-    const stored = await browser.storage.local.get([STORAGE_DEVICE_ID_KEY, STORAGE_DEVICE_NAME_KEY]);
+    const stored = await chrome.storage.local.get([STORAGE_DEVICE_ID_KEY, STORAGE_DEVICE_NAME_KEY]);
     const deviceId = stored[STORAGE_DEVICE_ID_KEY];
     const deviceName = stored[STORAGE_DEVICE_NAME_KEY];
     if (!deviceId || !deviceName) {
@@ -1096,14 +1106,14 @@
   }
 
   async function loadAutoFollowSetting() {
-    const stored = await browser.storage.local.get(STORAGE_AUTO_FOLLOW_KEY);
+    const stored = await chrome.storage.local.get(STORAGE_AUTO_FOLLOW_KEY);
     state.autoFollowEnabled = Boolean(stored[STORAGE_AUTO_FOLLOW_KEY]);
     return state.autoFollowEnabled;
   }
 
   async function setAutoFollowEnabled(enabled) {
     state.autoFollowEnabled = Boolean(enabled);
-    await browser.storage.local.set({
+    await chrome.storage.local.set({
       [STORAGE_AUTO_FOLLOW_KEY]: state.autoFollowEnabled,
     });
   }
@@ -1113,7 +1123,7 @@
   }
 
   async function rememberDefaultDevice(deviceId, deviceName) {
-    await browser.storage.local.set({
+    await chrome.storage.local.set({
       [STORAGE_DEVICE_ID_KEY]: deviceId,
       [STORAGE_DEVICE_NAME_KEY]: deviceName,
     });
